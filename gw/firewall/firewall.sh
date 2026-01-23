@@ -62,13 +62,31 @@ iptables -A OUTPUT -o eth3 -d 172.2.2.10 -p tcp --sport 22 -m conntrack --ctstat
 # R1. Se debe hacer NAT del tráfico saliente LAN
 iptables -t nat -A POSTROUTING -s 172.2.2.0/24 -o eth0 -j MASQUERADE
                                                         #usamos MASQUERADE porque solo hay salida sino -j SNAT --to IP
+
+# R3.A. Usuarios de la LAN pueden acceder a -p 80 y 443 de www
+iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.0/24 -d 172.1.2.3 -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED  -j ACCEPT
+iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.3 -d 172.2.2.0/24 -p tcp --sport 80 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# iptables -A FORWARD -i eth3 -o eth2 -j ACCEPT
+# iptables -A FORWARD -i eth2 -o eth3 -j ACCEPT
+
+# R2. Permitir acceso desde la WAN a www a través del 80 haciendo port forwarding
+#iptables -t nat -A PREROUTING -i $WAN_INTERFACE -p tcp --dport $HTTP_PORT -j DNAT --to-destination $DMZ_SERVER_IP:$HTTP_PORT
+#iptables -A FORWARD -p tcp -d $DMZ_SERVER_IP --dport $HTTP_PORT -j ACCEPT
+
+
+# R3.B. El usuario adminpc debe acceder por ssh a cualquier máquina de DMZ
+iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.10 -d 172.1.2.0/24 -p tcp --dport 22 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.0/24 -d 172.2.2.10 -p tcp --sport 22 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
 # R4. Permitir salir tráfico de la LAMP
 iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
+# R5. Permitir salir tráfico de la DMZ (sólo http/https/dns/ntp)
 
 
 ########Logs para depurar
 iptables -A INPUT -j LOG --log-prefix "EJCB-INPUT: "
 iptables -A OUTPUT -j LOG --log-prefix "EJCB-OUTPUT: "
-iptables -A FORWARD -j LOG --log-prefix "EJCB-FORWARD: " -o eth0 -s 172.
+iptables -A FORWARD -j LOG --log-prefix "EJCB-FORWARD: " 
