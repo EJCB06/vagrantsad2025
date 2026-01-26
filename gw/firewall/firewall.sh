@@ -72,14 +72,14 @@ iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.3 -d 172.2.2.0/24 -p tcp --sport 
 
 # R2. Permitir acceso desde la WAN a www a través del 80 haciendo port forwarding
 # 1. DNAT (Pre-routing): Lo que entra por eth0 (WAN) al puerto 80, se desvía a la IP privada del www
-iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 172.1.2.3:80
+iptables -t nat -A PREROUTING -i eth1 -p tcp --dport 80 -j DNAT --to-destination 172.1.2.3:80
 
 # 2. FORWARD: Permitir el paso de esos paquetes a través del firewall
 # Tráfico de entrada (WAN -> DMZ)
-iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.3 -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth1 -o eth2 -d 172.1.2.3 -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 
 # Tráfico de respuesta (DMZ -> WAN)
-iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.3 -p tcp --sport 80 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -i eth2 -o eth1 -s 172.1.2.3 -p tcp --sport 80 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 # R3.B. El usuario adminpc debe acceder por ssh a cualquier máquina de DMZ
 iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.10 -d 172.1.2.0/24 -p tcp --dport 22 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
