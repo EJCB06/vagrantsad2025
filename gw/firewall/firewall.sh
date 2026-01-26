@@ -71,9 +71,15 @@ iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.3 -d 172.2.2.0/24 -p tcp --sport 
 # iptables -A FORWARD -i eth2 -o eth3 -j ACCEPT
 
 # R2. Permitir acceso desde la WAN a www a través del 80 haciendo port forwarding
-#iptables -t nat -A PREROUTING -i $WAN_INTERFACE -p tcp --dport $HTTP_PORT -j DNAT --to-destination $DMZ_SERVER_IP:$HTTP_PORT
-#iptables -A FORWARD -p tcp -d $DMZ_SERVER_IP --dport $HTTP_PORT -j ACCEPT
+# 1. DNAT (Pre-routing): Lo que entra por eth0 (WAN) al puerto 80, se desvía a la IP privada del www
+iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 80 -j DNAT --to-destination 172.1.2.3:80
 
+# 2. FORWARD: Permitir el paso de esos paquetes a través del firewall
+# Tráfico de entrada (WAN -> DMZ)
+iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.3 -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+
+# Tráfico de respuesta (DMZ -> WAN)
+iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.3 -p tcp --sport 80 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 # R3.B. El usuario adminpc debe acceder por ssh a cualquier máquina de DMZ
 iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.10 -d 172.1.2.0/24 -p tcp --dport 22 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
@@ -84,6 +90,24 @@ iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -m conntrack --ctstate NEW,E
 iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 # R5. Permitir salir tráfico de la DMZ (sólo http/https/dns/ntp)
+# IMPORTANTE: Para que la DMZ salga a internet, también necesita NAT (igual que hiciste en R1 con la LAN).
+iptables -t nat -A POSTROUTING -s 172.1.2.0/24 -o eth0 -j MASQUERADE
+
+# 1. HTTP y HTTPS (puertos 80 y 443 TCP)
+iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p tcp -m multiport --sports 80,443 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# 2. DNS (puerto 53 UDP y TCP)
+# UDP es lo estándar para consultas
+iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p udp --dport 53 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p udp --sport 53 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# TCP a veces es necesario para respuestas grandes o actualizaciones de zona
+iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p tcp --dport 53 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p tcp --sport 53 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# 3. NTP (puerto 123 UDP) para actualizar el reloj
+iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p udp --dport 123 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p udp --sport 123 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 
 ########Logs para depurar
