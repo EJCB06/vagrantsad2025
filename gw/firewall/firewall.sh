@@ -93,6 +93,12 @@ iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -m conntrack --ctstate ESTAB
 # IMPORTANTE: Para que la DMZ salga a internet, también necesita NAT (igual que hiciste en R1 con la LAN).
 iptables -t nat -A POSTROUTING -s 172.1.2.0/24 -o eth0 -j MASQUERADE
 
+
+# P4. Permitir a LDAP desde DMZ
+iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.0/24 -d 172.2.2.2 -p tcp --dport 389 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.2 -d 172.1.2.0/24 -p tcp --sport 389 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+
+
 # 1. HTTP y HTTPS (puertos 80 y 443 TCP)
 iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p tcp -m multiport --sports 80,443 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
