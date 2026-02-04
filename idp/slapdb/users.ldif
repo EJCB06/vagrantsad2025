@@ -1,0 +1,47 @@
+dn: uid=edwin,ou=ou_usuarios,dc=ecueber,dc=org
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: person
+cn: Edwin
+givenName: Edwin
+sn: Edwin
+uid: edwin
+uidNumber: 2000
+gidNumber: 10000
+homeDirectory: /home/edwin
+loginShell: /bin/bash
+userPassword: {SSHA}iIvpgyECDXB8izkJMmPKMUwCObj0OlJz
+mail: edwin@iescelia.org
+
+dn: uid=aozores,ou=ou_usuarios,dc=ecueber,dc=org
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: person
+cn: Antonio Ozores
+givenName: Antonio
+sn: Ozores
+uid: aozores
+uidNumber: 2001
+gidNumber: 10001
+homeDirectory: /home/aozores
+loginShell: /bin/bash
+userPassword: {SSHA}iIvpgyECDXB8izkJMmPKMUwCObj0OlJz
+mail: aozores@iescelia.org
+
+dn: uid=torbe,ou=ou_usuarios,dc=ecueber,dc=org
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+objectClass: person
+cn: Torbe Nato
+givenName: Torbe
+sn: torbe
+uid: torbe
+uidNumber: 2002
+gidNumber: 10002
+homeDirectory: /home/torbe
+loginShell: /bin/bash
+userPassword: {SSHA}iIvpgyECDXB8izkJMmPKMUwCObj0OlJz
+mail: torbe@iescelia.org
