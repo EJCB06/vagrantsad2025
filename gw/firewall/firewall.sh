@@ -85,13 +85,38 @@ iptables -A FORWARD -i eth2 -o eth1 -s 172.1.2.3 -p tcp --sport 80 -m conntrack 
 iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.10 -d 172.1.2.0/24 -p tcp --dport 22 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.0/24 -d 172.2.2.10 -p tcp --sport 22 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-# R4. Permitir salir tráfico de la LAMP
-iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
-iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+
+
+
+# R4.v2. Permitir salir tráfico de la LAN
+#----------------------------------------
+# R4.v2.1. Tráfico web salienmte ha de pasar por el proxy
+iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.0/24 -d 172.1.2.2 -p tcp --dport 3128 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.2 -d 172.2.2.0/24 -p tcp --sport 3128 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# R4.v2.2. Permitir consultas DNS directas (sin proxy) tanto UDP (rápidas) como TCP (consultas grandes / DNSSEC)
+iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -p udp --dport 53 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -p udp --sport 53 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -p tcp --dport 53 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth3 -o eth3 -d 172.2.2.0/24 -p tcp --sport 53 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# R4.v2.3. Permitir consultas NTP (reloj)
+iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -p udp --dport 123 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -p udp --sport 123 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+# R4.v2.4. Permitimos pings salientes para depuración
+iptables -A FORWARD -i eth3 -o eth0 -s 172.2.2.0/24 -p icmp --icmp-type echo-request -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth3 -d 172.2.2.0/24 -p icmp --icmp-type echo-reply -j ACCEPT
+
+
 
 # R5. Permitir salir tráfico de la DMZ (sólo http/https/dns/ntp)
 # IMPORTANTE: Para que la DMZ salga a internet, también necesita NAT (igual que hiciste en R1 con la LAN).
 iptables -t nat -A POSTROUTING -s 172.1.2.0/24 -o eth0 -j MASQUERADE
+
+
+
 
 
 # P4. Permitir a LDAP desde DMZ
@@ -99,9 +124,16 @@ iptables -A FORWARD -i eth2 -o eth3 -s 172.1.2.0/24 -d 172.2.2.2 -p tcp --dport 
 iptables -A FORWARD -i eth3 -o eth2 -s 172.2.2.2 -d 172.1.2.0/24 -p tcp --sport 389 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 
 
+
+# Regla P6. Permitir acceso de la LAN al squid de la DMZ
+iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.2 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+# iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.2 -p tcp -m multiport --sports 80,443 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.2 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+
 # 1. HTTP y HTTPS (puertos 80 y 443 TCP)
-iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
-iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p tcp -m multiport --sports 80,443 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+# iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+# iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p tcp -m multiport --sports 80,443 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
 # 2. DNS (puerto 53 UDP y TCP)
 # UDP es lo estándar para consultas
@@ -114,6 +146,8 @@ iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p tcp --sport 53 -m conntra
 # 3. NTP (puerto 123 UDP) para actualizar el reloj
 iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.0/24 -p udp --dport 123 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i eth0 -o eth2 -d 172.1.2.0/24 -p udp --sport 123 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
+
 
 
 ########Logs para depurar

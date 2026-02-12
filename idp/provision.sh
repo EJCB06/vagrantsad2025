@@ -44,6 +44,19 @@ echo "[*] Cargando grupos..."
 ldapadd -x -D "cn=admin,dc=ecueber,dc=org" -w $LDAP_PASS -f "$DB_DIR/grupos.ldif" -c
 echo "[*] Cargando usuarios..."
 ldapadd -x -D "cn=admin,dc=ecueber,dc=org" -w $LDAP_PASS -f "$DB_DIR/users.ldif" -c
+echo "[*] Cargando usuarios del proxy..."
+ldapadd -x -D "cn=admin,dc=ecueber,dc=org" -w $LDAP_PASS -f "$DB_DIR/proxy_users.ldif" -c
 
+
+echo "[+] Verificando contraseña ... "
+ldapwhoami -x -D "cn=admin,dc=ecueber,dc=org" -w "$LDAP_PASS"
+
+echo "--$LDAP_PASS--"
+
+echo "[+] Configurando acceso web sin contraseña"
+cat <<EOF > /etc/apt/apt.conf.d/99proxy
+Acquire::http::Proxy "http://172.1.2.2:3128/";
+Acquire::https::Proxy "http://172.1.2.2:3128/";
+EOF
 
 echo "------ FIN ------"
