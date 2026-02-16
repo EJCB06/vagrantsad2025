@@ -140,7 +140,11 @@ iptables -A FORWARD -i eth2 -o tun0 -s 172.1.2.3 -d 172.3.2.0/24 -p tcp -m multi
 iptables -A FORWARD -i tun0 -o eth3 -s 172.3.2.0/24 -d 172.2.2.2 -p tcp --dport 389 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 iptables -A FORWARD -i eth3 -o tun0 -s 172.2.2.2 -d 172.3.2.0/24 -p tcp --sport 389 -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
 
-
+# --- NUEVO: Permitir PING desde la VPN (tun0) a LAN y DMZ ---
+# Permitir que el tráfico ICMP (ping) entre desde el túnel hacia dentro
+iptables -A FORWARD -i tun0 -p icmp -j ACCEPT
+# Permitir que la respuesta del ping vuelva al túnel
+iptables -A FORWARD -o tun0 -p icmp -j ACCEPT
 
 # Regla P6. Permitir acceso de la LAN al squid de la DMZ
 iptables -A FORWARD -i eth2 -o eth0 -s 172.1.2.2 -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
