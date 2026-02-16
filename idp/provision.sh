@@ -46,6 +46,8 @@ echo "[*] Cargando usuarios..."
 ldapadd -x -D "cn=admin,dc=ecueber,dc=org" -w $LDAP_PASS -f "$DB_DIR/users.ldif" -c
 echo "[*] Cargando usuarios del proxy..."
 ldapadd -x -D "cn=admin,dc=ecueber,dc=org" -w $LDAP_PASS -f "$DB_DIR/proxy_users.ldif" -c
+echo "[*] Cargando usuarios del VPN..."
+ldapadd -x -D "cn=admin,dc=ecueber,dc=org" -w $LDAP_PASS -f "$DB_DIR/vpn_users.ldif" -c
 
 
 echo "[+] Verificando contraseña ... "
