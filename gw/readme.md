@@ -19,7 +19,6 @@ Se ha desplegado una arquitectura de red virtualizada con las siguientes caracte
 * **Red WAN:** Acceso simulado a Internet.
 * **Red LAN (172.2.2.0/24):** Red interna protegida.
 * **DMZ (172.1.2.0/24):** Zona desmilitarizada para servicios públicos.
-* **Túnel VPN (10.99.0.0/24):** Subred virtual para clientes conectados.
 
 ## Infraestructura y Configuración
 
